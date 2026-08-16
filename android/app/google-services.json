@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "389680836579",
+    "project_id": "bmi-tracker-ankit-2026",
+    "storage_bucket": "bmi-tracker-ankit-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389680836579:android:56ed521d8cde4316b9fad6",
+        "android_client_info": {
+          "package_name": "com.example.bmi_tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "389680836579-op796k93qm1f96u1tm971ouk6o8icpvk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bmi_tracker",
+            "certificate_hash": "68201f1c989810fba76fd0621f5ff18abb3828aa"
+          }
+        },
+        {
+          "client_id": "389680836579-okevq77onr2bn8kv1fisubbovp8ftgg3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPkJkSidve_mxhpJPbdickOsTJ3gFW4Y8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "389680836579-okevq77onr2bn8kv1fisubbovp8ftgg3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "389680836579-5gu7siaac0uqce770vl7u2qrgctr143s.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.bmiTracker"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
