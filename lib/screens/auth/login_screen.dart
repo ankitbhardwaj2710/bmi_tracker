@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import 'auth_gate.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -57,25 +57,60 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleLogin() async {
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      await _authService.signInWithGoogle();
+  try {
+    final credential = await _authService.signInWithGoogle();
 
-      if (!mounted) return;
+    debugPrint(
+      'Google Login UID: ${credential.user?.uid}',
+    );
 
-      _showMessage('Google login successful');
-    } on FirebaseAuthException catch (e) {
-      _showMessage(e.message ?? 'Google login failed');
-    } catch (e) {
-      _showMessage('Google login failed');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Google login successful'),
+      ),
+    );
+
+    // Give Firebase Auth a moment to update its state.
+    await Future.delayed(
+      const Duration(milliseconds: 500),
+    );
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AuthGate(),
+      ),
+      (_) => false,
+    );
+  } on FirebaseAuthException catch (e) {
+    debugPrint('Firebase Google Auth Error: ${e.code}');
+    debugPrint('Firebase Google Auth Message: ${e.message}');
+
+    if (!mounted) return;
+
+    _showMessage(
+      '${e.code}: ${e.message}',
+    );
+  } catch (e) {
+    debugPrint('Google Sign-In Error: $e');
+
+    if (!mounted) return;
+
+    _showMessage(
+      'Google Sign-In Error: $e',
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
-
+}
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
