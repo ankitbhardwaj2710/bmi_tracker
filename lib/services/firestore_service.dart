@@ -7,9 +7,9 @@ class FirestoreService {
   final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
-  // --------------------------------------------------
+  // ==================================================
   // USER PROFILE
-  // --------------------------------------------------
+  // ==================================================
 
   Future<void> saveUserProfile(
     UserModel user,
@@ -40,21 +40,53 @@ class FirestoreService {
     );
   }
 
-  // --------------------------------------------------
+  // ==================================================
   // WEIGHT HISTORY
-  // --------------------------------------------------
+  // ==================================================
 
   Future<void> addWeightEntry(
     WeightEntry entry,
   ) async {
-    await _firestore
+    final historyRef = _firestore
         .collection('users')
         .doc(entry.uid)
-        .collection('weightHistory')
-        .doc(entry.id)
-        .set(
-          entry.toMap(),
-        );
+        .collection('weightHistory');
+
+    final startOfDay = DateTime(
+      entry.date.year,
+      entry.date.month,
+      entry.date.day,
+    );
+
+    final endOfDay = startOfDay.add(
+      const Duration(days: 1),
+    );
+
+    final existing = await historyRef
+        .where(
+          'date',
+          isGreaterThanOrEqualTo:
+              startOfDay.toIso8601String(),
+        )
+        .where(
+          'date',
+          isLessThan:
+              endOfDay.toIso8601String(),
+        )
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      await existing.docs.first.reference.update(
+        entry.toMap(),
+      );
+    } else {
+      await historyRef
+          .doc(entry.id)
+          .set(
+            entry.toMap(),
+          );
+    }
   }
 
   Future<List<WeightEntry>> getWeightHistory(

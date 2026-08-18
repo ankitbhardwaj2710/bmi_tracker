@@ -2,14 +2,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../models/weight_entry.dart';
 import '../../models/user_model.dart';
+import '../../models/weight_entry.dart';
 import '../../services/bmi_service.dart';
 import '../../services/firestore_service.dart';
 import '../home/home_screen.dart';
 
 class UserDetailsScreen extends StatefulWidget {
-  const UserDetailsScreen({super.key});
+  final UserModel? existingProfile;
+
+  const UserDetailsScreen({
+    super.key,
+    this.existingProfile,
+  });
 
   @override
   State<UserDetailsScreen> createState() =>
@@ -20,10 +25,15 @@ class _UserDetailsScreenState
     extends State<UserDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _weightController = TextEditingController();
-  final _heightController = TextEditingController();
+  final _weightController =
+      TextEditingController();
 
-  final _firestoreService = FirestoreService();
+  final _heightController =
+      TextEditingController();
+
+  final _firestoreService =
+      FirestoreService();
+
   final _uuid = const Uuid();
 
   String _weightUnit = 'KG';
@@ -31,6 +41,33 @@ class _UserDetailsScreenState
   String _gender = 'Male';
 
   bool _isLoading = false;
+
+  bool get _isEditing =>
+      widget.existingProfile != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final profile = widget.existingProfile;
+
+    if (profile != null) {
+      _weightController.text =
+          profile.weight.toString();
+
+      _heightController.text =
+          profile.height.toString();
+
+      _weightUnit =
+          profile.weightUnit;
+
+      _heightUnit =
+          profile.heightUnit;
+
+      _gender =
+          profile.gender;
+    }
+  }
 
   @override
   void dispose() {
@@ -44,25 +81,33 @@ class _UserDetailsScreenState
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user =
+        FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      _showMessage('Please login first');
+      _showMessage(
+        'Please login first',
+      );
       return;
     }
 
-    final weight =
-        double.parse(_weightController.text.trim());
+    final weight = double.parse(
+      _weightController.text.trim(),
+    );
 
-    final height =
-        double.parse(_heightController.text.trim());
+    final height = double.parse(
+      _heightController.text.trim(),
+    );
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Calculate BMI
+      // ==============================================
+      // CALCULATE BMI
+      // ==============================================
+
       final bmi = BmiService.calculate(
         weight: weight,
         weightUnit: _weightUnit,
@@ -70,10 +115,13 @@ class _UserDetailsScreenState
         heightUnit: _heightUnit,
       );
 
-      // Get BMI category
-      final category = BmiService.getCategory(bmi);
+      final category =
+          BmiService.getCategory(bmi);
 
-      // Create user profile
+      // ==============================================
+      // CREATE PROFILE
+      // ==============================================
+
       final profile = UserModel(
         uid: user.uid,
         email: user.email,
@@ -86,12 +134,17 @@ class _UserDetailsScreenState
         bmiCategory: category,
       );
 
-      // Save profile
-      await _firestoreService.saveUserProfile(
-        profile,
-      );
+      // ==============================================
+      // SAVE PROFILE
+      // ==============================================
 
-      // Create weight history entry
+      await _firestoreService
+          .saveUserProfile(profile);
+
+      // ==============================================
+      // SAVE WEIGHT HISTORY
+      // ==============================================
+
       final weightEntry = WeightEntry(
         id: _uuid.v4(),
         uid: user.uid,
@@ -100,29 +153,32 @@ class _UserDetailsScreenState
         date: DateTime.now(),
       );
 
-      // Save weight history
-      await _firestoreService.addWeightEntry(
-        weightEntry,
-      );
+      await _firestoreService
+          .addWeightEntry(weightEntry);
 
       if (!mounted) return;
 
       _showMessage(
-        'Profile saved! BMI: ${bmi.toStringAsFixed(1)}',
+        _isEditing
+            ? 'Profile updated successfully!'
+            : 'Profile saved successfully!',
       );
 
-      // Small delay so user can see success message
       await Future.delayed(
         const Duration(milliseconds: 500),
       );
 
       if (!mounted) return;
 
-      // Go to dashboard
+      // ==============================================
+      // GO TO DASHBOARD
+      // ==============================================
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
+          builder: (_) =>
+              const HomeScreen(),
         ),
         (_) => false,
       );
@@ -149,13 +205,13 @@ class _UserDetailsScreenState
     String? value,
     String fieldName,
   ) {
-    if (value == null || value.trim().isEmpty) {
+    if (value == null ||
+        value.trim().isEmpty) {
       return '$fieldName is required';
     }
 
-    final number = double.tryParse(
-      value.trim(),
-    );
+    final number =
+        double.tryParse(value.trim());
 
     if (number == null) {
       return 'Enter a valid number';
@@ -168,8 +224,11 @@ class _UserDetailsScreenState
     return null;
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+  void _showMessage(
+    String message,
+  ) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
         content: Text(message),
       ),
@@ -177,70 +236,116 @@ class _UserDetailsScreenState
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Details'),
+        title: Text(
+          _isEditing
+              ? 'Update Details'
+              : 'Your Details',
+        ),
       ),
+
       body: SafeArea(
         child: Form(
           key: _formKey,
+
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding:
+                const EdgeInsets.all(24),
+
             child: Column(
               crossAxisAlignment:
                   CrossAxisAlignment.stretch,
+
               children: [
-                const Icon(
-                  Icons.monitor_weight_outlined,
+                Icon(
+                  _isEditing
+                      ? Icons.edit_note
+                      : Icons
+                          .monitor_weight_outlined,
                   size: 72,
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(
+                  height: 20,
+                ),
 
-                const Text(
-                  'Tell us about yourself',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
+                Text(
+                  _isEditing
+                      ? 'Update your details'
+                      : 'Tell us about yourself',
+                  textAlign:
+                      TextAlign.center,
+
+                  style: const TextStyle(
                     fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 8),
-
-                const Text(
-                  'Enter your basic details to calculate your BMI.',
-                  textAlign: TextAlign.center,
+                const SizedBox(
+                  height: 8,
                 ),
 
-                const SizedBox(height: 32),
+                Text(
+                  _isEditing
+                      ? 'Update your information to recalculate your BMI.'
+                      : 'Enter your basic details to calculate your BMI.',
+                  textAlign:
+                      TextAlign.center,
+                ),
 
-                // Weight
+                const SizedBox(
+                  height: 32,
+                ),
+
+                // =====================================
+                // WEIGHT
+                // =====================================
+
                 TextFormField(
-                  controller: _weightController,
+                  controller:
+                      _weightController,
+
                   keyboardType:
-                      const TextInputType.numberWithOptions(
+                      const TextInputType
+                          .numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: InputDecoration(
+
+                  decoration:
+                      InputDecoration(
                     labelText: 'Weight',
-                    prefixIcon: const Icon(
-                      Icons.monitor_weight,
+
+                    prefixIcon:
+                        const Icon(
+                      Icons
+                          .monitor_weight,
                     ),
-                    suffixText: _weightUnit,
-                    border: const OutlineInputBorder(),
+
+                    suffixText:
+                        _weightUnit,
+
+                    border:
+                        const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      _validateNumber(
+
+                  validator:
+                      (value) =>
+                          _validateNumber(
                     value,
                     'Weight',
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(
+                  height: 12,
+                ),
 
-                // Weight unit
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(
@@ -252,41 +357,66 @@ class _UserDetailsScreenState
                       label: Text('LBS'),
                     ),
                   ],
-                  selected: {_weightUnit},
-                  onSelectionChanged: (value) {
+
+                  selected: {
+                    _weightUnit,
+                  },
+
+                  onSelectionChanged:
+                      (value) {
                     setState(() {
-                      _weightUnit = value.first;
+                      _weightUnit =
+                          value.first;
                     });
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 24,
+                ),
 
-                // Height
+                // =====================================
+                // HEIGHT
+                // =====================================
+
                 TextFormField(
-                  controller: _heightController,
+                  controller:
+                      _heightController,
+
                   keyboardType:
-                      const TextInputType.numberWithOptions(
+                      const TextInputType
+                          .numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: InputDecoration(
+
+                  decoration:
+                      InputDecoration(
                     labelText: 'Height',
-                    prefixIcon: const Icon(
+
+                    prefixIcon:
+                        const Icon(
                       Icons.height,
                     ),
-                    suffixText: _heightUnit,
-                    border: const OutlineInputBorder(),
+
+                    suffixText:
+                        _heightUnit,
+
+                    border:
+                        const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      _validateNumber(
+
+                  validator:
+                      (value) =>
+                          _validateNumber(
                     value,
                     'Height',
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(
+                  height: 12,
+                ),
 
-                // Height unit
                 SegmentedButton<String>(
                   segments: const [
                     ButtonSegment(
@@ -295,62 +425,99 @@ class _UserDetailsScreenState
                     ),
                     ButtonSegment(
                       value: 'INCH',
-                      label: Text('Inches'),
+                      label:
+                          Text('Inches'),
                     ),
                   ],
-                  selected: {_heightUnit},
-                  onSelectionChanged: (value) {
+
+                  selected: {
+                    _heightUnit,
+                  },
+
+                  onSelectionChanged:
+                      (value) {
                     setState(() {
-                      _heightUnit = value.first;
+                      _heightUnit =
+                          value.first;
                     });
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 24,
+                ),
 
-                // Gender
-                DropdownButtonFormField<String>(
-                  initialValue: _gender,
-                  decoration: const InputDecoration(
+                // =====================================
+                // GENDER
+                // =====================================
+
+                DropdownButtonFormField<
+                    String>(
+                  initialValue:
+                      _gender,
+
+                  decoration:
+                      const InputDecoration(
                     labelText: 'Gender',
-                    prefixIcon: Icon(
-                      Icons.person_outline,
+
+                    prefixIcon:
+                        Icon(
+                      Icons
+                          .person_outline,
                     ),
-                    border: OutlineInputBorder(),
+
+                    border:
+                        OutlineInputBorder(),
                   ),
+
                   items: const [
                     DropdownMenuItem(
                       value: 'Male',
-                      child: Text('Male'),
+                      child:
+                          Text('Male'),
                     ),
                     DropdownMenuItem(
                       value: 'Female',
-                      child: Text('Female'),
+                      child:
+                          Text('Female'),
                     ),
                     DropdownMenuItem(
                       value: 'Other',
-                      child: Text('Other'),
+                      child:
+                          Text('Other'),
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) {
+
+                  onChanged:
+                      (value) {
+                    if (value !=
+                        null) {
                       setState(() {
-                        _gender = value;
+                        _gender =
+                            value;
                       });
                     }
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(
+                  height: 32,
+                ),
 
-                // Calculate BMI
+                // =====================================
+                // SAVE / UPDATE
+                // =====================================
+
                 SizedBox(
                   height: 54,
-                  child: ElevatedButton(
+
+                  child:
+                      ElevatedButton(
                     onPressed:
                         _isLoading
                             ? null
                             : _saveDetails,
+
                     child: _isLoading
                         ? const SizedBox(
                             height: 24,
@@ -358,9 +525,13 @@ class _UserDetailsScreenState
                             child:
                                 CircularProgressIndicator(),
                           )
-                        : const Text(
-                            'Calculate My BMI',
-                            style: TextStyle(
+                        : Text(
+                            _isEditing
+                                ? 'Update & Recalculate BMI'
+                                : 'Calculate My BMI',
+
+                            style:
+                                const TextStyle(
                               fontSize: 16,
                             ),
                           ),
