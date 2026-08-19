@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import 'auth_gate.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -17,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   final _authService = AuthService();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -45,10 +47,30 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       _showMessage('Login successful');
+
+      await Future.delayed(
+        const Duration(milliseconds: 400),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthGate(),
+        ),
+        (_) => false,
+      );
     } on FirebaseAuthException catch (e) {
-      _showMessage(e.message ?? 'Login failed');
+      _showMessage(
+        e.message ?? 'Login failed',
+      );
     } catch (e) {
-      _showMessage('Something went wrong');
+      debugPrint('Login Error: $e');
+
+      _showMessage(
+        'Something went wrong. Please try again.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -57,190 +79,523 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleLogin() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    final credential = await _authService.signInWithGoogle();
+    try {
+      final credential =
+          await _authService.signInWithGoogle();
 
-    debugPrint(
-      'Google Login UID: ${credential.user?.uid}',
-    );
+      debugPrint(
+        'Google Login UID: ${credential.user?.uid}',
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Google login successful'),
-      ),
-    );
+      _showMessage(
+        'Google login successful',
+      );
 
-    // Give Firebase Auth a moment to update its state.
-    await Future.delayed(
-      const Duration(milliseconds: 500),
-    );
+      await Future.delayed(
+        const Duration(milliseconds: 500),
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const AuthGate(),
-      ),
-      (_) => false,
-    );
-  } on FirebaseAuthException catch (e) {
-    debugPrint('Firebase Google Auth Error: ${e.code}');
-    debugPrint('Firebase Google Auth Message: ${e.message}');
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthGate(),
+        ),
+        (_) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      debugPrint(
+        'Firebase Google Auth Error: ${e.code}',
+      );
 
-    if (!mounted) return;
+      debugPrint(
+        'Firebase Google Auth Message: ${e.message}',
+      );
 
-    _showMessage(
-      '${e.code}: ${e.message}',
-    );
-  } catch (e) {
-    debugPrint('Google Sign-In Error: $e');
+      if (!mounted) return;
 
-    if (!mounted) return;
+      _showMessage(
+        e.message ?? 'Google Sign-In failed',
+      );
+    } catch (e) {
+      debugPrint(
+        'Google Sign-In Error: $e',
+      );
 
-    _showMessage(
-      'Google Sign-In Error: $e',
-    );
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      _showMessage(
+        'Google Sign-In failed. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
+
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: SingleChildScrollView(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              24,
+              32,
+              24,
+              24,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 480,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.monitor_weight_outlined,
-                    size: 80,
+                  // -----------------------------------
+                  // LOGO
+                  // -----------------------------------
+
+                  Center(
+                    child: Container(
+                      height: 92,
+                      width: 92,
+                      decoration: BoxDecoration(
+                        color:
+                            colors.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons
+                            .monitor_weight_outlined,
+                        size: 48,
+                        color:
+                            colors.onPrimaryContainer,
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  const Text(
+                  Text(
                     'BMI Tracker',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme
+                        .textTheme
+                        .headlineLarge
+                        ?.copyWith(
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
                   ),
 
                   const SizedBox(height: 8),
 
-                  const Text(
-                    'Track your health, one step at a time.',
+                  Text(
+                    'Track your health,\none step at a time.',
                     textAlign: TextAlign.center,
+                    style: theme
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(
+                          color: colors
+                              .onSurfaceVariant,
+                          height: 1.4,
+                        ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 36),
 
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
-                    ),
+                  // -----------------------------------
+                  // EMAIL
+                  // -----------------------------------
+
+                  Text(
+                    'Email address',
+                    style: theme
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
 
                   TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                    controller:
+                        _emailController,
+                    keyboardType:
+                        TextInputType.emailAddress,
+                    textInputAction:
+                        TextInputAction.next,
+                    decoration:
+                        InputDecoration(
+                      hintText:
+                          'Enter your email',
+                      prefixIcon: const Icon(
+                        Icons
+                            .email_outlined,
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest,
+                      border:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide.none,
+                      ),
+                      enabledBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide.none,
+                      ),
+                      focusedBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide(
+                          color:
+                              colors.primary,
+                          width: 2,
                         ),
                       ),
                     ),
                   ),
 
+                  const SizedBox(height: 18),
+
+                  // -----------------------------------
+                  // PASSWORD
+                  // -----------------------------------
+
+                  Text(
+                    'Password',
+                    style: theme
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  TextField(
+                    controller:
+                        _passwordController,
+                    obscureText:
+                        _obscurePassword,
+                    textInputAction:
+                        TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!_isLoading) {
+                        _login();
+                      }
+                    },
+                    decoration:
+                        InputDecoration(
+                      hintText:
+                          'Enter your password',
+                      prefixIcon: const Icon(
+                        Icons
+                            .lock_outline_rounded,
+                      ),
+                      suffixIcon:
+                          IconButton(
+                        tooltip:
+                            _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword =
+                                !_obscurePassword;
+                          });
+                        },
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons
+                                  .visibility_outlined
+                              : Icons
+                                  .visibility_off_outlined,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor:
+                          colors.surfaceContainerHighest,
+                      border:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide.none,
+                      ),
+                      enabledBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide.none,
+                      ),
+                      focusedBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          14,
+                        ),
+                        borderSide:
+                            BorderSide(
+                          color:
+                              colors.primary,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // -----------------------------------
+                  // FORGOT PASSWORD
+                  // -----------------------------------
+
                   Align(
-                    alignment: Alignment.centerRight,
+                    alignment:
+                        Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('Forgot Password?'),
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ForgotPasswordScreen(),
+                                    ),
+                                  );
+                                },
+                      child: const Text(
+                        'Forgot password?',
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
+                  // -----------------------------------
+                  // LOGIN BUTTON
+                  // -----------------------------------
+
                   SizedBox(
-                    height: 52,
+                    height: 54,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : _login,
+                      style:
+                          ElevatedButton.styleFrom(
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(
+                            14,
+                          ),
+                        ),
+                      ),
                       child: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Login'),
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : const Text(
+                              'Login',
+                              style:
+                                  TextStyle(
+                                fontSize: 16,
+                                fontWeight:
+                                    FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 22),
 
-                  OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _googleLogin,
-                    icon: const Icon(Icons.login),
-                    label: const Text('Continue with Google'),
-                  ),
-
-                  const SizedBox(height: 24),
+                  // -----------------------------------
+                  // DIVIDER
+                  // -----------------------------------
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account? "),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignupScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text('Create Account'),
+                      Expanded(
+                        child: Divider(
+                          color: colors.outlineVariant,
+                        ),
+                      ),
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 14,
+                        ),
+                        child: Text(
+                          'OR',
+                          style: theme
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(
+                                color: colors
+                                    .onSurfaceVariant,
+                                fontWeight:
+                                    FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: colors.outlineVariant,
+                        ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // -----------------------------------
+                  // GOOGLE
+                  // -----------------------------------
+
+                  SizedBox(
+                    height: 54,
+                    child:
+                        OutlinedButton.icon(
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : _googleLogin,
+                      style:
+                          OutlinedButton.styleFrom(
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(
+                            14,
+                          ),
+                        ),
+                        side: BorderSide(
+                          color:
+                              colors.outline,
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons
+                            .account_circle_outlined,
+                      ),
+                      label: const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // -----------------------------------
+                  // SIGNUP
+                  // -----------------------------------
+
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account?",
+                        style: theme
+                            .textTheme
+                            .bodyMedium,
+                      ),
+                      TextButton(
+                        onPressed:
+                            _isLoading
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const SignupScreen(),
+                                      ),
+                                    );
+                                  },
+                        child: const Text(
+                          'Create Account',
+                          style: TextStyle(
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Your health data stays private and secure.',
+                    textAlign: TextAlign.center,
+                    style: theme
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(
+                          color: colors
+                              .onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
