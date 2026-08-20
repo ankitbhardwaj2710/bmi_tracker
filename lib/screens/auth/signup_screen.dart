@@ -329,7 +329,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
 
                   // CONFIRM PASSWORD
                   Text(
@@ -386,7 +386,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
 
                   // CREATE ACCOUNT
                   SizedBox(
@@ -426,7 +426,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 15),
 
                   // LOGIN LINK
                   Row(
@@ -459,7 +459,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 2),
 
                   Text(
                     'Your health data stays private and secure.',
